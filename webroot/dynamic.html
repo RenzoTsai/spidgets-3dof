@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiGet Widget</title>
+    <script src="vendor/socket.io.min.js"></script>
+    <script src="vendor/alpinejs.min.js"></script>
+    <script src="app.js"></script>
+</head>
+<body>
+
+<s-room background="transparent" id="room">
+    <s-group camera scroll-swipe="headset" id="camera"></s-group>
+
+    <s-group id="recliner">
+        <s-group :rotation="$store.app.chartRotation.x + ' ' + $store.app.chartRotation.y + ' ' + $store.app.chartRotation.z">
+            <!-- Position is dynamically updated based on chartPosition from Alpine store -->
+            <s-div iframe-src="widgets/aiget.html"
+                   id="firstChart"
+                   :position="$store.app.chartPosition.x + ' ' + $store.app.chartPosition.y + ' ' + $store.app.chartPosition.z"
+                   width="960"
+                   height="540"
+                   interval="5">
+            </s-div>
+        </s-group>
+    </s-group>
+</s-room>
+
+<div class="overlay">
+    <button @click="$store.app.center()">Center</button>
+    <button @click="$store.app.toggleRoll()" x-html="$store.app.roll ? 'Roll On' : 'Roll Off'"></button>
+    <button @click="$store.app.toggleYaw()" x-html="$store.app.yaw ? 'Yaw On' : 'Yaw Off'"></button>
+    <button @click="$store.app.togglePitch()" x-html="$store.app.pitch ? 'Pitch On' : 'Pitch Off'"></button>
+
+    <div class="controls">
+        <label style="color: white">
+            X Position
+            <input type="range" min="-100" max="100" step="1" x-model="$store.app.chartPosition.x">
+        </label>
+        <label style="color: white">
+            Y Position
+            <input type="range" min="-100" max="100" step="1" x-model="$store.app.chartPosition.y">
+        </label>
+        <label style="color: white">
+            Z Position
+            <input type="range" min="-1000" max="100" step="1" x-model="$store.app.chartPosition.z">
+        </label>
+    </div>
+
+    <div class="controls">
+        <h3>Rotation Controls</h3>
+        <label style="color: white">
+            X Rotation
+            <input type="range" min="0" max="360" step="1" x-model="$store.app.chartRotation.x">
+        </label>
+       <label style="color: white">
+            Y Rotation
+            <input type="range" min="0" max="360" step="1" x-model="$store.app.chartRotation.y">
+        </label>
+        <label style="color: white">
+            Z Rotation
+            <input type="range" min="0" max="360" step="1" x-model="$store.app.chartRotation.z">
+        </label>
+    </div>
+</div>
+
+<script src="vendor/spidgets-core.min.js"></script>
+<script src="widgets/chart-widget.js"></script>
+<script src="widgets/weather-widget.js"></script>
+<link rel="stylesheet" href="main.css">
+</body>
+</html>

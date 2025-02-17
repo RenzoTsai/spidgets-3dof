@@ -9,3 +9,5 @@ webroot/compat/data.json
 package-lock.json
 node_modules
 bun.lockb
+
+venv

@@ -1,40 +1,247 @@
-<script src="vendor/socket.io.min.js"></script>
-<script src="vendor/alpinejs.min.js"></script>
-<script src="app.js"></script>
-
-<s-room background="transparent" id="room">
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="vendor/socket.io.min.js"></script>
+  <script src="vendor/alpinejs.min.js"></script>
+  <script src="app.js"></script>
+  <style>
+    /* 控制面板样式 */
+    .overlay {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .controls-section {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      color: white;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+    }
+    .slider-label {
+      min-width: 80px;
+    }
+    input[type="range"] {
+      width: 200px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 4px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .value-display {
+      min-width: 50px;
+      text-align: right;
+      color: #4CAF50;
+    }
+    .buttons-group {
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    /* 小按钮样式 */
+    .toggle-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <!-- 3D 场景 -->
+  <s-room background="transparent" id="room">
     <s-group camera scroll-swipe="headset" id="camera"></s-group>
-
     <s-group id="recliner">
-        <s-group rotation="0 45 0">
-            <weather-widget position="0 11 -100"></weather-widget>
-
-            <s-div iframe-src="widgets/econ-calendar.html" position="0 -11 -100"
-                   width="380" height="580" outer-class="frosted"></s-div>
-        </s-group>
-
-        <s-group rotation="0 30 0">
-            <chart-widget position="0 17 -100" width="410" height="310" interval="5"></chart-widget>
-            <chart-widget position="0 0 -100" width="410" height="310" interval="5" symbol="NVDA"></chart-widget>
-            <chart-widget position="0 -17 -100" width="410" height="310" interval="5" symbol="TSLA"></chart-widget>
-        </s-group>
-
-        <s-group zone="0">
-            <s-screen iframe-src="//youtube.com/feed/subscriptions?theme=dark" zoom=".8"></s-screen>
-        </s-group>
+      <s-group rotation="0 45 0">
+        <weather-widget position="0 11 -100"></weather-widget>
+        <s-div iframe-src="widgets/econ-calendar.html"
+               position="0 -11 -100"
+               width="380"
+               height="580"
+               outer-class="frosted"></s-div>
+      </s-group>
+      <s-div iframe-src="widgets/control-panel.html"
+             position="100 11 -100"
+             width="380"
+             height="580"
+             outer-class="frosted"></s-div>
+      <s-group zone="0"
+               x-bind:position="$store.app.chartPosition.x + ' ' +
+                              $store.app.chartPosition.y + ' ' +
+                              $store.app.chartPosition.z"
+               x-bind:rotation="$store.app.chartRotation.x + ' ' +
+                              $store.app.chartRotation.y + ' ' +
+                              $store.app.chartRotation.z">
+        <s-screen x-bind:iframe-src="$store.app.url" zoom=".8"></s-screen>
+      </s-group>
     </s-group>
-</s-room>
+  </s-room>
 
-<div class="overlay">
-    <button @click="$store.app.center()">
-        Center
-    </button>
-    <button @click="$store.app.toggleRoll()" x-html="$store.app.roll ? 'Roll On' : 'Roll Off'"></button>
-    <button @click="$store.app.togglePitch()" x-html="$store.app.pitch ? 'Pitch On' : 'Pitch Off'"></button>
+  <!-- 控制面板与切换按钮 -->
+  <div x-data="{ showPanel: false }">
+    <!-- 小切换按钮 -->
+    <button @click="showPanel = !showPanel" class="toggle-btn">☰</button>
+
+    <!-- 控制面板，使用 x-show 控制显示与隐藏 -->
+    <div x-show="showPanel" x-transition class="overlay">
+      <!-- Position Controls -->
+      <div class="controls-section">
+        <div class="section-title">Position</div>
+        <div class="slider-group">
+          <span class="slider-label">X:</span>
+          <input type="range"
+                 x-model.number="$store.app.chartPosition.x"
+                 @input="$store.app.updateChartPosition(
+                   $store.app.chartPosition.x,
+                   $store.app.chartPosition.y,
+                   $store.app.chartPosition.z
+                 )"
+                 min="-100"
+                 max="100"
+                 step="1">
+          <span class="value-display" x-text="$store.app.chartPosition.x"></span>
+        </div>
+        <div class="slider-group">
+          <span class="slider-label">Y:</span>
+          <input type="range"
+                 x-model.number="$store.app.chartPosition.y"
+                 @input="$store.app.updateChartPosition(
+                   $store.app.chartPosition.x,
+                   $store.app.chartPosition.y,
+                   $store.app.chartPosition.z
+                 )"
+                 min="-100"
+                 max="100"
+                 step="1">
+          <span class="value-display" x-text="$store.app.chartPosition.y"></span>
+        </div>
+        <div class="slider-group">
+          <span class="slider-label">Z:</span>
+          <input type="range"
+                 x-model.number="$store.app.chartPosition.z"
+                 @input="$store.app.updateChartPosition(
+                   $store.app.chartPosition.x,
+                   $store.app.chartPosition.y,
+                   $store.app.chartPosition.z
+                 )"
+                 min="-200"
+                 max="0"
+                 step="1">
+          <s-screen x-bind:key="$store.app.url" x-bind:iframe-src="$store.app.url" zoom=".8"></s-screen>
+
+        </div>
+      </div>
+
+      <!-- Rotation Controls -->
+      <div class="controls-section">
+        <div class="section-title">Rotation</div>
+        <div class="slider-group">
+          <span class="slider-label">X:</span>
+          <input type="range"
+                 x-model.number="$store.app.chartRotation.x"
+                 @input="$store.app.updateChartRotation(
+                   $store.app.chartRotation.x,
+                   $store.app.chartRotation.y,
+                   $store.app.chartRotation.z
+                 )"
+                 min="-180"
+                 max="180"
+                 step="5">
+          <span class="value-display" x-text="$store.app.chartRotation.x + '°'"></span>
+        </div>
+        <div class="slider-group">
+          <span class="slider-label">Y:</span>
+          <input type="range"
+                 x-model.number="$store.app.chartRotation.y"
+                 @input="$store.app.updateChartRotation(
+                   $store.app.chartRotation.x,
+                   $store.app.chartRotation.y,
+                   $store.app.chartRotation.z
+                 )"
+                 min="-180"
+                 max="180"
+                 step="5">
+          <span class="value-display" x-text="$store.app.chartRotation.y + '°'"></span>
+        </div>
+        <div class="slider-group">
+          <span class="slider-label">Z:</span>
+          <input type="range"
+                 x-model.number="$store.app.chartRotation.z"
+                 @input="$store.app.updateChartRotation(
+                   $store.app.chartRotation.x,
+                   $store.app.chartRotation.y,
+                   $store.app.chartRotation.z
+                 )"
+                 min="-180"
+                 max="180"
+                 step="5">
+          <span class="value-display" x-text="$store.app.chartRotation.z + '°'"></span>
+        </div>
+      </div>
+
+      <!-- URL 控制：允许用户更新显示的网站链接 -->
+<div class="controls-section" x-data="{ newUrl: $store.app.url }">
+  <div class="section-title">Website URL</div>
+  <div class="slider-group" style="gap: 5px;">
+    <input type="text" x-model="newUrl" placeholder="Enter website URL">
+    <button @click="$store.app.url = newUrl; $store.app.reloadScreen()">Apply</button>
+  </div>
 </div>
 
 
-<script src="vendor/spidgets-core.min.js"></script>
-<script src="widgets/chart-widget.js"></script>
-<script src="widgets/weather-widget.js"></script>
-<link rel="stylesheet" href="main.css">
+      <!-- Motion Controls -->
+      <div class="buttons-group">
+        <button @click="$store.app.center()">Center</button>
+        <button @click="$store.app.toggleRoll()" x-html="$store.app.roll ? 'Roll On' : 'Roll Off'"></button>
+        <button @click="$store.app.toggleYaw()" x-html="$store.app.yaw ? 'Yaw On' : 'Yaw Off'"></button>
+        <button @click="$store.app.togglePitch()" x-html="$store.app.pitch ? 'Pitch On' : 'Pitch Off'"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/spidgets-core.min.js"></script>
+  <script src="widgets/chart-widget.js"></script>
+  <script src="widgets/weather-widget.js"></script>
+  <link rel="stylesheet" href="main.css">
+</body>
+</html>
